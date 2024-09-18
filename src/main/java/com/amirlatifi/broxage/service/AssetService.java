@@ -2,6 +2,7 @@ package com.amirlatifi.broxage.service;
 
 import com.amirlatifi.broxage.model.Asset;
 import com.amirlatifi.broxage.repository.AssetRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,11 +12,8 @@ import java.util.List;
 @Service
 public class AssetService {
 
-	private final AssetRepository assetRepository;
-
-	public AssetService(AssetRepository assetRepository) {
-		this.assetRepository = assetRepository;
-	}
+	@Autowired
+	private AssetRepository assetRepository;
 
 	public List<Asset> getAssetsByCustomerId(Long customerId) {
 		return assetRepository.findByCustomerId(customerId);

@@ -2,7 +2,10 @@ package com.amirlatifi.broxage.controller;
 
 import com.amirlatifi.broxage.model.Order;
 import com.amirlatifi.broxage.model.OrderSide;
+import com.amirlatifi.broxage.model.Customer;
 import com.amirlatifi.broxage.service.OrderService;
+import com.amirlatifi.broxage.service.CustomerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,11 +20,11 @@ import java.util.List;
 @RequestMapping("/api/orders")
 public class OrderController {
 
-	private final OrderService orderService;
+	@Autowired
+	private OrderService orderService;
 
-	public OrderController(OrderService orderService) {
-		this.orderService = orderService;
-	}
+	@Autowired
+	private CustomerService customerService;
 
 	@PostMapping
 	public ResponseEntity<Order> createOrder(Authentication authentication,
@@ -54,18 +57,21 @@ public class OrderController {
 		return ResponseEntity.ok().build();
 	}
 
-	private Long getEffectiveCustomerId(Authentication authentication, Long requestedCustomerId) {
+	private Long getEffectiveCustomerId(Authentication authentication, Long providedCustomerId) {
 		boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
-		Long authenticatedCustomerId = Long.parseLong(authentication.getName());
 
-		if (isAdmin && requestedCustomerId != null) {
-			return requestedCustomerId;
-		} else if (isAdmin) {
-			throw new IllegalArgumentException("Admin must specify a customer ID");
-		} else if (requestedCustomerId != null && !requestedCustomerId.equals(authenticatedCustomerId)) {
-			throw new IllegalArgumentException("Customers can only access their own data");
+		if (isAdmin) {
+			if (providedCustomerId == null) {
+				throw new IllegalArgumentException("Admin must provide a customer ID");
+			}
+			return providedCustomerId;
 		} else {
-			return authenticatedCustomerId;
+			String username = authentication.getName();
+			Customer customer = customerService.findByUsername(username);
+			if (providedCustomerId != null && !providedCustomerId.equals(customer.getId())) {
+				throw new IllegalArgumentException("Customers can only access their own orders");
+			}
+			return customer.getId();
 		}
 	}
 }

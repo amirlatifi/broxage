@@ -11,15 +11,18 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
-	private final AuthenticationManager authenticationManager;
+	private AuthenticationManager authenticationManager;
 
 	public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
 		this.authenticationManager = authenticationManager;
@@ -30,13 +33,13 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 	public Authentication attemptAuthentication(HttpServletRequest req,
 												HttpServletResponse res) throws AuthenticationException {
 		try {
-			Customer customer = new ObjectMapper()
+			Customer creds = new ObjectMapper()
 					.readValue(req.getInputStream(), Customer.class);
 
 			return authenticationManager.authenticate(
 					new UsernamePasswordAuthenticationToken(
-							customer.getUsername(),
-							customer.getPassword(),
+							creds.getUsername(),
+							creds.getPassword(),
 							new ArrayList<>())
 			);
 		} catch (IOException e) {
@@ -48,7 +51,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 	protected void successfulAuthentication(HttpServletRequest req,
 											HttpServletResponse res,
 											FilterChain chain,
-											Authentication auth) throws IOException {
+											Authentication auth) throws IOException, ServletException {
 		String token = Jwts.builder()
 				.setSubject(((Customer) auth.getPrincipal()).getUsername())
 				.setExpiration(new Date(System.currentTimeMillis() + 864_000_000))
@@ -56,5 +59,13 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 				.compact();
 
 		res.addHeader("Authorization", "Bearer " + token);
+
+		// Add token to response body
+		Map<String, String> tokenMap = new HashMap<>();
+		tokenMap.put("token", token);
+
+		res.setContentType("application/json");
+		res.setCharacterEncoding("UTF-8");
+		res.getWriter().write(new ObjectMapper().writeValueAsString(tokenMap));
 	}
 }

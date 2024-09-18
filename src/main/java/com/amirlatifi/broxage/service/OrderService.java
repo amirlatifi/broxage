@@ -4,7 +4,7 @@ import com.amirlatifi.broxage.model.Order;
 import com.amirlatifi.broxage.model.OrderSide;
 import com.amirlatifi.broxage.model.OrderStatus;
 import com.amirlatifi.broxage.repository.OrderRepository;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,14 +15,11 @@ import java.util.List;
 @Service
 public class OrderService {
 
-	private final OrderRepository orderRepository;
+	@Autowired
+	private OrderRepository orderRepository;
 
-	private final AssetService assetService;
-
-	public OrderService(OrderRepository orderRepository, AssetService assetService) {
-		this.orderRepository = orderRepository;
-		this.assetService = assetService;
-	}
+	@Autowired
+	private AssetService assetService;
 
 	@Transactional
 	public Order createOrder(Long customerId, String assetName, OrderSide side, BigDecimal size, BigDecimal price) {
@@ -61,7 +58,7 @@ public class OrderService {
 				.orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
 		if (!order.getCustomerId().equals(customerId)) {
-			throw new AccessDeniedException("You don't have permission to cancel this order");
+			throw new IllegalArgumentException("Cannot cancel order: order does not belong to the customer");
 		}
 
 		if (order.getStatus() != OrderStatus.PENDING) {
@@ -77,16 +74,5 @@ public class OrderService {
 		} else {
 			assetService.updateAssetUsableSize(order.getCustomerId(), order.getAssetName(), order.getSize());
 		}
-	}
-
-	public Order getOrderById(Long customerId, Long orderId) {
-		Order order = orderRepository.findById(orderId)
-				.orElseThrow(() -> new IllegalArgumentException("Order not found"));
-
-		if (!order.getCustomerId().equals(customerId)) {
-			throw new AccessDeniedException("You don't have permission to view this order");
-		}
-
-		return order;
 	}
 }
