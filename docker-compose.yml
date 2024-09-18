@@ -1,0 +1,12 @@
+version: '3'
+services:
+  broxage-firm-app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=
+    volumes:
+      - ./logs:/app/logs
